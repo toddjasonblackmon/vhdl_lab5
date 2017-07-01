@@ -5,12 +5,17 @@ set sclk_ratio 100
 create_generated_clock -name sclk -source [get_ports CLK100MHZ] -divide_by $sclk_ratio [get_ports ACL_SCLK]
 
 # Relax constraints between clocks
-# MOSI (only 1/2 SCLK cycle is actually given since we launch on falling and latch on rising)
-set_multicycle_path -setup -start -rise_from [get_clocks sys_clk_pin] -fall_to [get_clocks sclk] [expr $sclk_ratio/2]
-set_multicycle_path -hold -start -rise_from [get_clocks sys_clk_pin] -fall_to [get_clocks sclk] [expr $sclk_ratio-1]
+# MOSI
+# Setup check is launched on sys_clk_pin where sclk is falling and latched on next sclk rising edge
+# Hold check is launched on sys_clk_pin where sclk is falling and latched on previous sclk rising edge
+set_multicycle_path -setup -start -from [get_clocks sys_clk_pin] -to [get_clocks sclk] [expr $sclk_ratio/2]
+set_multicycle_path -hold -start -from [get_clocks sys_clk_pin] -to [get_clocks sclk] [expr $sclk_ratio-1]
 
-set_multicycle_path -setup -end -fall_from [get_clocks sclk] -rise_to [get_clocks sys_clk_pin] [expr $sclk_ratio/2]
-set_multicycle_path -hold -end -fall_from [get_clocks sclk] -rise_to [get_clocks sys_clk_pin] [expr $sclk_ratio-1]
+# MISO
+# Setup check is launched on sclk falling edge and latched on sys_clk_pin associated with next sclk rising edge
+# Hold check is launched on sclk falling edge and latched on sys_clk_pin associated with previous sclk rising edge
+set_multicycle_path -setup -end -from [get_clocks sclk] -to [get_clocks sys_clk_pin] [expr $sclk_ratio/2]
+set_multicycle_path -hold -end -from [get_clocks sclk] -to [get_clocks sys_clk_pin] [expr $sclk_ratio-1]
 
 # From ADXL362 Datasheet, Table 10
 # Setup time for accelerometer MOSI
